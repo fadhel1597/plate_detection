@@ -155,7 +155,7 @@ def main(img_path=None, vid_path=None,vid_out = None):
                 
                 cv2.imshow("vid_out", frame)
                 if vid_out:
-                    print(f"[INFO] Saving output video. . . ")
+                    print(f"[INFO] Saving output video. . . . ")
                     out.write(frame)
 
                 if cv2.waitKey(5) & 0xFF == ord('q'):
