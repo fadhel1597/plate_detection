@@ -162,7 +162,7 @@ def main(img_path=None, vid_path=None,vid_out = None):
                     break
                 frame_no += 1
         
-        print(f"[INFO] Cleaning up. . . ")
+        print(f"[INFO] Cleaning up. . . . ")
         ### releaseing the writer
         # out.release()
         
