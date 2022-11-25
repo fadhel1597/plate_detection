@@ -194,9 +194,6 @@ def main(img_path=None, vid_path=None, vid_out = None):
 					# if num_plate[0][1] == NAMA_RUANGAN:
 					#     string = ''
 				
-				# ArduinoSerial.write(bytes(string, 'utf-8'))
-				# print(ArduinoSerial.readline())
-				
 				cv2.imshow("vid_out", frame)
 				# if vid_out:
 				#     print(f"[INFO] Saving output video. . . ")
