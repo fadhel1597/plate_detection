@@ -12,8 +12,8 @@ import serial
 ##### DEFINING GLOBAL VARIABLE
 EASY_OCR = easyocr.Reader(['en'], gpu=True) ### initiating easyocr
 OCR_TH = 0.2
-# NAMA_RUANGAN = str(input('Nama Ruangan : '))
-# NAMA_RUANGAN = NAMA_RUANGAN.upper()
+NAMA_RUANGAN = str(input('Nama Ruangan : '))
+NAMA_RUANGAN = NAMA_RUANGAN.upper()
 
 ArduinoSerial = serial.Serial('/dev/ttyACM0',9600,timeout=0.1)
 
@@ -109,7 +109,9 @@ def main(img_path=None, vid_path=None):
 	fps = int(cap.get(cv2.CAP_PROP_FPS))
 
 	frame_no = 1
-	
+	flag = False
+	isStop = 0
+
 	while True:
 		# start_time = time.time()
 		ret, frame = cap.read()
@@ -117,25 +119,40 @@ def main(img_path=None, vid_path=None):
 			print(f"[INFO] Working with frame {frame_no} ")
 
 			frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
-
 			results = detectx(frame, model = model)
 			frame = cv2.cvtColor(frame,cv2.COLOR_RGB2BGR)
 			frame, num_plate, area_bbox = plot_boxes(results, frame, classes=classes)
-			print(f'[INFO] Character Result : {num_plate[0][1]}')
+			num_plate = str(num_plate[0][1])
+
+			print(f'[INFO] Character Result : {num_plate}')
 			print(f'[INFO] Area : {area_bbox}')
-			if area_bbox < 5000:
+
+			if area_bbox < 5000 and isStop == 0:
 				string = '3'
-			elif area_bbox >= 5000:
-				string = '0'
+			elif area_bbox >= 5000 and NAMA_RUANGAN=='F9.5':
+				cv2.imwrite('final_output/video_to_image_capture.jpg',frame)
+				string = '4'
+				isStop = 1
+				if (ArduinoSerial.readline().decode().strip() == "ARDUINOSTOP"):
+					print('STOP')
+					break
+
 
 			print('--------------------------------------------------------------------------------')				
 			cv2.imshow("vid_out", frame)
 			ArduinoSerial.write(bytes(string, 'utf-8'))
 			print('[INFO] PWM Value :',ArduinoSerial.readline().decode('utf-8'))
-	
+
+
+			
 			if cv2.waitKey(5) & 0xFF == ord('q'):
 				cv2.imwrite('final_output/video_to_image_capture.jpg',frame)
 				break
+			# else:
+			# 	if (isStop == 1 and ArduinoSerial.readline().decode().strip() == "ARDUINOSTOP"):
+			# 		print('STOP')
+			# 		break
+
 			frame_no += 1
 			# fps.update()
 	

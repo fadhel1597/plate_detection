@@ -91,6 +91,11 @@ void loop() {
 
     delay(100);
 
-    Serial.println(String(kiri));
+    
+    if (j == 1 && kiri == 0){
+      Serial.println("ARDUINOSTOP");
+    } else {
+      Serial.println(String(kiri));
+    }
   } 
 }
