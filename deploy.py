@@ -5,6 +5,8 @@ import time
 import re
 import numpy as np
 import easyocr
+import imutils
+from imutils.video import FPS
 import serial
 
 ##### DEFINING GLOBAL VARIABLE
@@ -16,6 +18,7 @@ OCR_TH = 0.2
 ArduinoSerial = serial.Serial('/dev/ttyACM0',9600,timeout=0.1)
 
 ### -------------------------------------- function to run detection ---------------------------------------------------------
+
 def detectx (frame, model):
 	frame = [frame]
 	print(f"[INFO] Detecting. . . ")
@@ -25,7 +28,6 @@ def detectx (frame, model):
 	return labels, cordinates
 
 #### ---------------------------- function to recognize license plate --------------------------------------
-
 
 # function to recognize license plate numbers using Tesseract OCR
 def filter_text(region, ocr_result, region_threshold):
@@ -53,18 +55,10 @@ def recognize_plate_easyocr(img, coords,reader,region_threshold):
 	return text, ocr_result
 
 
-### to filter out wrong detections 
-
-
 
 ### ------------------------------------ to plot the BBox and results --------------------------------------------------------
-def plot_boxes(results,frame,classes):
 
-	"""
-	--> This function takes results, frame and classes
-	--> results: contains labels and coordinates predicted by model on the given frame
-	--> classes: contains the strting labels
-	"""
+def plot_boxes(results,frame,classes):
 	global plate_num
 	global bbox_area
 	labels, cord = results
@@ -93,60 +87,64 @@ def plot_boxes(results,frame,classes):
 				return frame, plate_num, bbox_area
 			
 	return frame, [(0, 0, 0)] ,0
+	
 ### ---------------------------------------------- Main function -----------------------------------------------------
 
-def main(img_path=None, vid_path=None, vid_out = None):
+def main(img_path=None, vid_path=None):
 	string = ''
 	print(f"[INFO] Loading model... ")
 	## loading the custom trained model
 	model =  torch.hub.load('./yolov5', 'custom', source ='local', path='best.pt',force_reload=True) ### The repo is stored locally
-
+	# fps = FPS().start()
 	classes = model.names ### class names in string format
 
 	### --------------- for detection on video --------------------
-	if vid_path !=None:
-		print(f"[INFO] Working with video: {vid_path}")
+	print(f"[INFO] Working with video: {vid_path}")
 
-		## reading the video
-		cap = cv2.VideoCapture(vid_path)
+	## reading the video
+	cap = cv2.VideoCapture(vid_path)
 
-		width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-		height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-		fps = int(cap.get(cv2.CAP_PROP_FPS))
+	width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+	height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+	fps = int(cap.get(cv2.CAP_PROP_FPS))
 
-		frame_no = 1
+	frame_no = 1
+	
+	while True:
+		# start_time = time.time()
+		ret, frame = cap.read()
+		if ret  and frame_no %1 == 0:
+			print(f"[INFO] Working with frame {frame_no} ")
 
-		cv2.namedWindow("vid_out", cv2.WINDOW_NORMAL)
-		while True:
-			# start_time = time.time()
-			ret, frame = cap.read()
-			if ret  and frame_no %1 == 0:
-				print(f"[INFO] Working with frame {frame_no} ")
+			frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 
-				frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
+			results = detectx(frame, model = model)
+			frame = cv2.cvtColor(frame,cv2.COLOR_RGB2BGR)
+			frame, num_plate, area_bbox = plot_boxes(results, frame, classes=classes)
+			print(f'[INFO] Character Result : {num_plate[0][1]}')
+			print(f'[INFO] Area : {area_bbox}')
+			if area_bbox < 5000:
+				string = '3'
+			elif area_bbox >= 5000:
+				string = '0'
 
-				results = detectx(frame, model = model)
-				frame = cv2.cvtColor(frame,cv2.COLOR_RGB2BGR)
-				frame, num_plate, area_bbox = plot_boxes(results, frame, classes=classes)
-				print(f'[INFO] Character Result : {num_plate[0][1]}')
-				print(f'[INFO] Area : {area_bbox}')
-				if area_bbox < 5000:
-					string = '3'
-				elif area_bbox >= 5000:
-					string = '0'
+			print('--------------------------------------------------------------------------------')				
+			cv2.imshow("vid_out", frame)
+			ArduinoSerial.write(bytes(string, 'utf-8'))
+			print('[INFO] PWM Value :',ArduinoSerial.readline().decode('utf-8'))
+	
+			if cv2.waitKey(5) & 0xFF == ord('q'):
+				cv2.imwrite('final_output/video_to_image_capture.jpg',frame)
+				break
+			frame_no += 1
+			# fps.update()
+	
+	# fps.stop()
 
-				print('--------------------------------------------------------------------------------')				
-				cv2.imshow("vid_out", frame)
-				ArduinoSerial.write(bytes(string, 'utf-8'))
-				print('[INFO] PWM Value :',ArduinoSerial.readline().decode('utf-8'))
-		
-				if cv2.waitKey(5) & 0xFF == ord('q'):
-					cv2.imwrite('final_output/video_to_image_capture.jpg',frame)
-					break
-				frame_no += 1
-		
-		print(f"[INFO] Cleaning up. . . ")
-		cv2.destroyAllWindows()
+	print(f"[INFO] Cleaning up. . . ")
+	# print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
+	# print("[INFO] approx. FPS: {:.2f}".format(fps()))
+	cv2.destroyAllWindows()
 
 
 
