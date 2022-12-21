@@ -19,7 +19,7 @@ ArduinoSerial = serial.Serial('/dev/ttyACM0',9600,timeout=0.1)
 
 def detectx (frame, model):
 	frame = [frame]
-	print(f"[INFO] Detecting. . . ")
+	# print(f"[INFO] Detecting. . . ")
 	results = model(frame)
 	labels, cordinates = results.xyxyn[0][:, -1], results.xyxyn[0][:, :-1]
 
@@ -62,15 +62,15 @@ def plot_boxes(results,frame,classes):
 	labels, cord = results
 	n = len(labels)
 	x_shape, y_shape = frame.shape[1], frame.shape[0]
-	print(f"[INFO] Total {n} detections. . . ")
-	print(f"[INFO] Looping through all detections. . . ")
+	# print(f"[INFO] Total {n} detections. . . ")
+	# print(f"[INFO] Looping through all detections. . . ")
 
 
 	### looping through the detections
 	for i in range(n):
 		row = cord[i]
 		if row[4] >= 0.55: ### threshold value for detection. We are discarding everything below this value
-			print(f"[INFO] Extracting BBox coordinates. . . ")
+			# print(f"[INFO] Extracting BBox coordinates. . . ")
 			x1, y1, x2, y2 = int(row[0]*x_shape)-5, int(row[1]*y_shape), int(row[2]*x_shape)+5, int(row[3]*y_shape) ## BBOx coordniates
 			text_d = classes[int(labels[i])]
 
@@ -113,7 +113,7 @@ def main(img_path=None, vid_path=None):
 		start_time = time.time()
 		ret, frame = cap.read()
 		if ret  and frame_no %1 == 0:
-			print(f"[INFO] Working with frame {frame_no} ")
+			# print(f"[INFO] Working with frame {frame_no} ")
 
 			frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 			results = detectx(frame, model = model)
@@ -122,34 +122,33 @@ def main(img_path=None, vid_path=None):
 			num_plate = str(num_plate[0][1])
 
 			print(f'[INFO] Character Result : {num_plate}')
-			print(f'[INFO] Area : {area_bbox}')
+			print(f'[INFO] Luas Bounding Box : {area_bbox}')
 
 			if area_bbox < 5000 and isStop == 0:
 				string = '0'
+
 			elif area_bbox >= 5000 and NAMA_RUANGAN == 'F9.5':
 				cv2.imwrite('final_output/video_to_image_capture.jpg',frame)
 				string = '1'
 				isStop = 1
 				if (ArduinoSerial.readline().decode().strip() == "0 - 0"):
-					print('STOP')
+					print(f'[INFO] Ruangan {NAMA_RUANGAN} Terdeteksi')
 					break
 
-
-			print('--------------------------------------------------------------------------------')	
 			end_time = time.time()		
 			cv2.imshow("vid_out", frame)
 			ArduinoSerial.write(bytes(string, 'utf-8'))
-			print('[INFO] PWM Value :',ArduinoSerial.readline().decode('utf-8'))
-			print(f'[INFO] Process Time :',end_time - start_time)
+			PWM_Value = ArduinoSerial.readline().decode().strip()
 
+			print(f'[INFO] Process Time : {end_time - start_time}')
+			print(f'[INFO] PWM Value : {PWM_Value}\n')
 			
 			if cv2.waitKey(5) & 0xFF == ord('q'):
-				cv2.imwrite('final_output/video_to_image_capture.jpg',frame)
+				string = '1'
+				isStop = 1
+			if (isStop == 1 and PWM_Value == "0 - 0"):
+				print('[INFO] Process Terminated')
 				break
-			# else:
-			# 	if (isStop == 1 and ArduinoSerial.readline().decode().strip() == "ARDUINOSTOP"):
-			# 		print('STOP')
-			# 		break
 
 			frame_no += 1
 	
