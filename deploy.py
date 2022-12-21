@@ -5,8 +5,6 @@ import time
 import re
 import numpy as np
 import easyocr
-import imutils
-from imutils.video import FPS
 import serial
 
 ##### DEFINING GLOBAL VARIABLE
@@ -73,7 +71,7 @@ def plot_boxes(results,frame,classes):
 		row = cord[i]
 		if row[4] >= 0.55: ### threshold value for detection. We are discarding everything below this value
 			print(f"[INFO] Extracting BBox coordinates. . . ")
-			x1, y1, x2, y2 = int(row[0]*x_shape), int(row[1]*y_shape), int(row[2]*x_shape), int(row[3]*y_shape) ## BBOx coordniates
+			x1, y1, x2, y2 = int(row[0]*x_shape)-5, int(row[1]*y_shape), int(row[2]*x_shape)+5, int(row[3]*y_shape) ## BBOx coordniates
 			text_d = classes[int(labels[i])]
 
 			coords = [x1,y1,x2,y2]
@@ -95,7 +93,6 @@ def main(img_path=None, vid_path=None):
 	print(f"[INFO] Loading model... ")
 	## loading the custom trained model
 	model =  torch.hub.load('./yolov5', 'custom', source ='local', path='best.pt',force_reload=True) ### The repo is stored locally
-	# fps = FPS().start()
 	classes = model.names ### class names in string format
 
 	### --------------- for detection on video --------------------
@@ -113,7 +110,7 @@ def main(img_path=None, vid_path=None):
 	isStop = 0
 
 	while True:
-		# start_time = time.time()
+		start_time = time.time()
 		ret, frame = cap.read()
 		if ret  and frame_no %1 == 0:
 			print(f"[INFO] Working with frame {frame_no} ")
@@ -128,21 +125,22 @@ def main(img_path=None, vid_path=None):
 			print(f'[INFO] Area : {area_bbox}')
 
 			if area_bbox < 5000 and isStop == 0:
-				string = '3'
-			elif area_bbox >= 5000 and NAMA_RUANGAN=='F9.5':
+				string = '0'
+			elif area_bbox >= 5000 and NAMA_RUANGAN == 'F9.5':
 				cv2.imwrite('final_output/video_to_image_capture.jpg',frame)
-				string = '4'
+				string = '1'
 				isStop = 1
-				if (ArduinoSerial.readline().decode().strip() == "ARDUINOSTOP"):
+				if (ArduinoSerial.readline().decode().strip() == "0 - 0"):
 					print('STOP')
 					break
 
 
-			print('--------------------------------------------------------------------------------')				
+			print('--------------------------------------------------------------------------------')	
+			end_time = time.time()		
 			cv2.imshow("vid_out", frame)
 			ArduinoSerial.write(bytes(string, 'utf-8'))
 			print('[INFO] PWM Value :',ArduinoSerial.readline().decode('utf-8'))
-
+			print(f'[INFO] Process Time :',end_time - start_time)
 
 			
 			if cv2.waitKey(5) & 0xFF == ord('q'):
@@ -154,19 +152,11 @@ def main(img_path=None, vid_path=None):
 			# 		break
 
 			frame_no += 1
-			# fps.update()
 	
-	# fps.stop()
 
 	print(f"[INFO] Cleaning up. . . ")
-	# print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
-	# print("[INFO] approx. FPS: {:.2f}".format(fps()))
 	cv2.destroyAllWindows()
 
-
-
 ### -------------------  calling the main function-------------------------------
-
-
 main(vid_path="./test_footages/output3.mp4") ### for custom video
 # main(vid_path=0) #### for webcam
