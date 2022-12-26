@@ -7,7 +7,8 @@ import numpy as np
 import easyocr
 import serial
 
-##### DEFINING GLOBAL VARIABLE
+
+##### definisi variabel global
 EASY_OCR = easyocr.Reader(['en'], gpu=True) ### initiating easyocr
 OCR_TH = 0.2
 NAMA_RUANGAN = str(input('Nama Ruangan : '))
@@ -15,8 +16,8 @@ NAMA_RUANGAN = NAMA_RUANGAN.upper()
 
 ArduinoSerial = serial.Serial('/dev/ttyACM0',9600,timeout=0.1)
 
-### -------------------------------------- function to run detection ---------------------------------------------------------
 
+#### fungsi deteksi objek
 def detectx (frame, model):
 	frame = [frame]
 	# print(f"[INFO] Detecting. . . ")
@@ -25,9 +26,8 @@ def detectx (frame, model):
 
 	return labels, cordinates
 
-#### ---------------------------- function to recognize license plate --------------------------------------
 
-# function to recognize license plate numbers using Tesseract OCR
+#### fungsi pengenalan karakter
 def filter_text(region, ocr_result, region_threshold):
 	rectangle_size = region.shape[0]*region.shape[1]
 	
@@ -54,8 +54,7 @@ def recognize_plate_easyocr(img, coords,reader,region_threshold):
 
 
 
-### ------------------------------------ to plot the BBox and results --------------------------------------------------------
-
+#### fungsi plot bounding box
 def plot_boxes(results,frame,classes):
 	global plate_num
 	global bbox_area
@@ -63,14 +62,10 @@ def plot_boxes(results,frame,classes):
 	n = len(labels)
 	x_shape, y_shape = frame.shape[1], frame.shape[0]
 	# print(f"[INFO] Total {n} detections. . . ")
-	# print(f"[INFO] Looping through all detections. . . ")
 
-
-	### looping through the detections
 	for i in range(n):
 		row = cord[i]
 		if row[4] >= 0.55: ### threshold value for detection. We are discarding everything below this value
-			# print(f"[INFO] Extracting BBox coordinates. . . ")
 			x1, y1, x2, y2 = int(row[0]*x_shape)-5, int(row[1]*y_shape), int(row[2]*x_shape)+5, int(row[3]*y_shape) ## BBOx coordniates
 			text_d = classes[int(labels[i])]
 
@@ -85,9 +80,9 @@ def plot_boxes(results,frame,classes):
 				return frame, plate_num, bbox_area
 			
 	return frame, [(0, 0, 0)] ,0
-	
-### ---------------------------------------------- Main function -----------------------------------------------------
 
+
+#### Main function 
 def main(img_path=None, vid_path=None):
 	string = ''
 	print(f"[INFO] Loading model... ")
@@ -110,10 +105,14 @@ def main(img_path=None, vid_path=None):
 	isStop = 0
 
 	while True:
+		cv2.waitKey(20)
 		start_time = time.time()
 		ret, frame = cap.read()
-		if ret  and frame_no %1 == 0:
-			# print(f"[INFO] Working with frame {frame_no} ")
+		if not ret:
+			break
+		elif ret  and frame_no %1 == 0:
+			print(f"[INFO] Working with frame {frame_no} ")
+			cv2.putText(frame, f"{frame_no}", (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.5,(255,0,0), 2)
 
 			frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 			results = detectx(frame, model = model)
@@ -156,6 +155,7 @@ def main(img_path=None, vid_path=None):
 	print(f"[INFO] Cleaning up. . . ")
 	cv2.destroyAllWindows()
 
-### -------------------  calling the main function-------------------------------
+
+#### calling the main function
 main(vid_path="./test_footages/output3.mp4") ### for custom video
 # main(vid_path=0) #### for webcam
