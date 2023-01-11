@@ -157,5 +157,4 @@ def main(img_path=None, vid_path=None):
 
 
 #### calling the main function
-main(vid_path="./test_footages/output3.mp4") ### for custom video
-# main(vid_path=0) #### for webcam
+main(vid_path=0) #### for webcam
