@@ -1,3 +1,3 @@
 # plate_detection
 
-Room plate name program using YOLOv5 and EasyOCR
+Room plate name program for smartwheelchair using YOLOv5 and EasyOCR
